@@ -3,11 +3,13 @@
 import rospy
 from gemetry_msgs.msg import Point
 from wifi_scanner import WiFiScanner
+from position_predictor import PositionPredictor
 
 
 class PositionFetcher():
     def __init__(self):
         self.scanner = WiFiScanner()
+        self.predictor = PositionPredictor()
         # self.publisher = rospy.Publisher('position', String, queue_size=10)
         # use the existing position instead of String
         self.publisher = rospy.Publisher('position', Point, queue_size=10)
@@ -16,11 +18,13 @@ class PositionFetcher():
     # this node should predict the position of the robot based on the wifi signal strength then publish it
     def run(self):
         while not rospy.is_shutdown():
-            position = self.scanner.scan_and_get_data()
+            wifi_data = self.scanner.scan_and_get_data()
+            predicted_position = self.predictor.predict_position(wifi_data)
+            x,y = predicted_position[0]
             # create a new Point object and publish it
             point = Point()
-            point.x = position[0]
-            point.y = position[1]
+            point.x = x
+            point.y = y
 
             self.publisher.publish(point)
             rospy.loginfo("Position: x: %f, y: %f", point.x, point.y)
