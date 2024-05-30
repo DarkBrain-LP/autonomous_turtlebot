@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from gemetry_msgs.msg import Point
+from geometry_msgs.msg import Point
 from wifi_scanner import WiFiScanner
 from position_predictor import PositionPredictor
 
