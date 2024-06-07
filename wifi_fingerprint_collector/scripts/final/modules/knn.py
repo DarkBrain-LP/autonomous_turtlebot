@@ -66,6 +66,7 @@ def main():
         predicted_position = knn.predict(new_observation)
 
         print("Position prédite:", predicted_position)
+        print("Type Position prédite:", type(predicted_position))
     else:
         print("Erreur : Impossible de trouver les trois adresses WiFi d'intérêt")
 

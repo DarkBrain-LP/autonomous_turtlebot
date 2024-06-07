@@ -9,14 +9,15 @@ from wifi_scanner import WiFiScanner
 
 def create_csv():
     print("Creating CSV file for data logging...")
-    with open('wifi_data.csv', 'w') as file:
+    with open('wifi_data_test.csv', 'w') as file:
         writer = csv.writer(file)
         writer.writerow(['x', 'y', 's1', 's2', 's3'])
+        #writer.writerow(['x', 'y', 's1', 's2', 's3', 's4', 's5'])
     print("CSV file created.")
 
 def create_db():
     print("Creating SQLite database for data logging...")
-    conn = sqlite3.connect('wifi_data.db')
+    conn = sqlite3.connect('wifi_data_test.db')
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS wifi_data (
@@ -33,27 +34,24 @@ def create_db():
 
 def move_straight(cmd_vel_pub):
     move_cmd = Twist()
-    move_cmd.linear.x = 0.1  # 0.1 m/s
+    move_cmd.linear.x = 0.1 #0.2  # 0.1 m/s
     move_cmd.linear.y = 0.0
     move_cmd.linear.z = 0.0
     move_cmd.angular.x = 0.0
     move_cmd.angular.y = 0.0
     move_cmd.angular.z = 0.0
 
-    # Définir la distance à parcourir
-    distance = 0.5  # 50 cm
-
-    # Calculer le temps nécessaire pour parcourir la distance
-    time_needed = distance / move_cmd.linear.x
-
     # Définir la fréquence de publication
     rate = rospy.Rate(10)  # 10 Hz
 
+    # Durée pendant laquelle envoyer les commandes
+    duration = 5 #2.5  # secondes
+
     # Boucle pour envoyer les commandes de vitesse
-    end_time = rospy.Time.now() + rospy.Duration(time_needed)
+    end_time = rospy.Time.now() + rospy.Duration(duration)
     while rospy.Time.now() < end_time:
         cmd_vel_pub.publish(move_cmd)
-        rate.sleep()
+        #rate.sleep()
 
     # Arrêter le robot après avoir parcouru la distance
     stop_cmd = Twist()
@@ -75,22 +73,28 @@ def average(values):
 def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
     x = row
     y = 0
-    
+
     for i in range(steps):
         print(i)
         y = i if next_row == -1 else steps-i
         # collect data
 
         # Collecter les données trois fois pour améliorer la précision
-        signals_list = [scanner.scan_and_get_data() for _ in range(3)]
+        # signals_list = [scanner.scan_and_get_data() for _ in range(3)]
+        signals_list = [scanner.scan_and_get_data() for _ in range(5)]
         s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
         s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
         s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
+        #s4_values = [signals[3] if len(signals) > 3 else 'N/A' for signals in signals_list]
+        #s5_values = [signals[4] if len(signals) > 4 else 'N/A' for signals in signals_list]
+        
 
         # Calculer la moyenne des signaux
         s1_avg = average(s1_values)
         s2_avg = average(s2_values)
         s3_avg = average(s3_values)
+        #s4_avg = average(s4_values)
+        #s5_avg = average(s5_values)
 
         record_data(x, y, s1_avg, s2_avg, s3_avg)
 
@@ -99,7 +103,7 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
         # s2 = signals[1] if len(signals) > 1 else 'N/A'
         # s3 = signals[2] if len(signals) > 2 else 'N/A'
         # record_data(x, y, s1, s2, s3)
-        
+
         # move
         move_straight(pub)
 
@@ -107,12 +111,29 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
         y += 1
     else:
         y -= 1
-        
-    signals = scanner.scan_and_get_data()
-    s1 = signals[0] if len(signals) > 0 else 'N/A'
-    s2 = signals[1] if len(signals) > 1 else 'N/A'
-    s3 = signals[2] if len(signals) > 2 else 'N/A'
-    record_data(x, y, s1, s2, s3)
+
+    # signals = scanner.scan_and_get_data()
+    # s1 = signals[0] if len(signals) > 0 else 'N/A'
+    # s2 = signals[1] if len(signals) > 1 else 'N/A'
+    # s3 = signals[2] if len(signals) > 2 else 'N/A'
+    # record_data(x, y, s1, s2, s3)
+
+    signals_list = [scanner.scan_and_get_data() for _ in range(5)]
+    s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
+    s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
+    s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
+    #s4_values = [signals[3] if len(signals) > 3 else 'N/A' for signals in signals_list]
+    #s5_values = [signals[4] if len(signals) > 4 else 'N/A' for signals in signals_list]
+    
+
+    # Calculer la moyenne des signaux
+    s1_avg = average(s1_values)
+    s2_avg = average(s2_values)
+    s3_avg = average(s3_values)
+    #s4_avg = average(s4_values)
+    #s5_avg = average(s5_values)
+
+    record_data(x, y, s1_avg, s2_avg, s3_avg)
 
     turn_right = True if next_row == -1 else False
     turn_robot(pub, right=turn_right)
@@ -120,6 +141,8 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
     turn_robot(pub, right=turn_right)
 
 def collect_space_data(pub, scanner, column_length=2, row_length=2):
+    column_length = int(input('column length'))
+    row_length = int(input('row length'))
     row_dir = -1
     for row in range(row_length+1):
         collect_column(pub, scanner, steps=column_length, row=row, next_row=row_dir)
@@ -148,7 +171,7 @@ def turn_robot(cmd_vel_pub, right=True):
     end_time = rospy.Time.now() + rospy.Duration(duration)
     while rospy.Time.now() < end_time:
         cmd_vel_pub.publish(rotate_cmd)
-        rate.sleep()
+        #rate.sleep()
 
     # Arrêter le robot après avoir tourné
     stop_cmd = Twist()  # Un message Twist avec toutes les valeurs à zéro
@@ -156,11 +179,11 @@ def turn_robot(cmd_vel_pub, right=True):
 
 def record_data(x, y, s1, s2, s3):
     rospy.loginfo(f"Recording data: x={x}, y={y}, s1={s1}, s2={s2}, s3={s3}")
-    with open('wifi_data.csv', 'a') as file:
+    with open('wifi_data_test.csv', 'a') as file:
         writer = csv.writer(file)
         writer.writerow([x, y, s1, s2, s3])
 
-    conn = sqlite3.connect('wifi_data.db')
+    conn = sqlite3.connect('wifi_data_test.db')
     cursor = conn.cursor()
     cursor.execute('INSERT INTO wifi_data (x, y, s1, s2, s3) VALUES (?, ?, ?, ?, ?)', (x, y, s1, s2, s3))
     conn.commit()
@@ -171,16 +194,12 @@ def main():
     rospy.init_node('robot_collector', anonymous=True)
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
-    # create_csv()
-    # create_db()
+    create_csv()
+    create_db()
 
-    # scanner = WiFiScanner()
-    # collect_space_data(pub, scanner)
-    i = 1
-    while(True):
-        move_straight(pub)
-        rospy.loginfo(f'step {i}')
-        i += 1
+    scanner = WiFiScanner()
+    collect_space_data(pub, scanner)
+
     rospy.spin()
 
 if __name__ == '__main__':

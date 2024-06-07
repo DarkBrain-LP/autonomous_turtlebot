@@ -21,7 +21,7 @@ class WiFiScanner:
         essid = None
         signal = None
         address = None
-        signals = [None, None, None, None, None]
+        signals = [None, None, None]
 
         for line in lines:
             line = line.strip()
