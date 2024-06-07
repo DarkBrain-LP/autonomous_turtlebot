@@ -18,7 +18,7 @@ class PositionFetcher():
     # this node should predict the position of the robot based on the wifi signal strength then publish it
     def run(self):
         while not rospy.is_shutdown():
-            signals_list = [self.scanner.scan_and_get_data() for _ in range(3)]
+            signals_list = [self.scanner.scan_and_get_data() for _ in range(3)] # 3
             s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
             s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
             s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]

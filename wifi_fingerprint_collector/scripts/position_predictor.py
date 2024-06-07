@@ -30,6 +30,8 @@ class PositionPredictor:
         print("Modèle entraîné et sauvegardé.")
 
     def load_model(self):
+        if not os.path.exists(self.model_path):
+            self.train_and_save_model()
         # Charger le modèle sauvegardé
         return joblib.load(self.model_path)
 

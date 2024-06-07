@@ -83,6 +83,7 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
         # Collecter les données trois fois pour améliorer la précision
         # signals_list = [scanner.scan_and_get_data() for _ in range(3)]
         signals_list = [scanner.scan_and_get_data() for _ in range(2)]
+        print('signals_list', signals_list)
         s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
         s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
         s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]

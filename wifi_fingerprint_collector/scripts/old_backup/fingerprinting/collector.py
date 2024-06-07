@@ -65,19 +65,21 @@ class RobotController:
 
         if self.turning == True:
             twist.linear.x = 0.0
-            twist.angular.z = 0.5 * self.next_row
+            twist.angular.z = 0.3 * self.next_row
             seconds = rospy.get_time()
             # print("tims diff =", seconds-self.last_time)
             angle = msg.twist.twist.angular.z * (seconds-self.last_time)
             # print("angle =", angle)
-            rospy.loginfo('turing angle={angle}')
+            # rospy.loginfo('turing angle={}'.format(angle))
 
-            if angle >= 3.14/2: #abs(euler[2])
+            if abs(angle) >= 1.57: #abs(euler[2])
+                rospy.loginfo('turing angle={}'.format(angle))
                 self.turning = False  # Reset turning flag
                 self.start_position_x = position_x
                 self.start_position_y = position_y
                 twist.angular.z = 0.0
                 rospy.loginfo('will stop turning')
+            
             self.pub.publish(twist)
             return
         else:
