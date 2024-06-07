@@ -54,8 +54,9 @@ def move_straight(cmd_vel_pub):
         #rate.sleep()
 
     # Arrêter le robot après avoir parcouru la distance
-    stop_cmd = Twist()
-    cmd_vel_pub.publish(stop_cmd)
+    move_cmd.linear.x = 0.0
+    #stop_cmd = Twist()
+    cmd_vel_pub.publish(move_cmd)
 
 def rotate_robot(pub, angle, angular_speed=0.5):
     duration = abs(angle) / angular_speed
@@ -81,7 +82,7 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
 
         # Collecter les données trois fois pour améliorer la précision
         # signals_list = [scanner.scan_and_get_data() for _ in range(3)]
-        signals_list = [scanner.scan_and_get_data() for _ in range(5)]
+        signals_list = [scanner.scan_and_get_data() for _ in range(2)]
         s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
         s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
         s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
@@ -163,7 +164,7 @@ def turn_robot(cmd_vel_pub, right=True):
 
     # Durée pendant laquelle envoyer les commandes pour tourner
     # Par exemple, pour tourner 90 degrés avec une vitesse angulaire de 0.5 rad/s
-    angle_to_turn = 90  # degrés
+    angle_to_turn = 90 + 5 # degrés
     angular_speed = 0.5  # rad/s
     duration = (angle_to_turn * 3.14159 / 180) / angular_speed  # Convertir degrés en radians et calculer la durée
 
@@ -198,6 +199,21 @@ def main():
     create_db()
 
     scanner = WiFiScanner()
+    #for _ in range(4):
+    #   move_straight(pub)
+
+    #move_straight(pub)
+    #turn_robot(pub)
+    #move_straight(pub)
+    #turn_robot(pub)
+    #move_straight(pub)
+    #turn_robot(pub)
+    #move_straight(pub)
+    #turn_robot(pub)
+    #if str(input('is position correct ? y / n')) == 'y':
+    #    collect_space_data(pub, scanner)
+    #else:
+    #    return
     collect_space_data(pub, scanner)
 
     rospy.spin()

@@ -4,12 +4,9 @@ import re
 class WiFiScanner:
     def __init__(self):
         self.target_essids = {
-            "0_LP": 0,
-            "Yawo": 1,
-            "NUMERICABLE-8378": 2,
-            "turtlebot": 2,
-            "Amirsharata": 3,
-            "Amirsharata01": 4,
+            "Yawo": 0,
+            "turtlebot": 1,
+            "0_LP": 2,
         }
 
     def scan_wifi(self):

@@ -53,7 +53,7 @@ def move_straight(cmd_vel_pub):
     end_time = rospy.Time.now() + rospy.Duration(duration)
     while rospy.Time.now() < end_time:
         cmd_vel_pub.publish(move_cmd)
-        rate.sleep()
+        #rate.sleep()
 
     # Arrêter le robot après avoir parcouru la distance
     stop_cmd = Twist()
@@ -120,7 +120,7 @@ def collect_column(pub, scanner, steps=2, row=0, next_row=-1):
     # s3 = signals[2] if len(signals) > 2 else 'N/A'
     # record_data(x, y, s1, s2, s3)
 
-    signals_list = [scanner.scan_and_get_data() for _ in range(5)]
+    signals_list = [scanner.scan_and_get_data() for _ in range(2)] # 5
     s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
     s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
     s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
@@ -165,7 +165,7 @@ def turn_robot(cmd_vel_pub, right=True):
 
     # Durée pendant laquelle envoyer les commandes pour tourner
     # Par exemple, pour tourner 90 degrés avec une vitesse angulaire de 0.5 rad/s
-    angle_to_turn = 90  # degrés
+    angle_to_turn = 90 + 10   # degrés
     angular_speed = 0.5  # rad/s
     duration = (angle_to_turn * 3.14159 / 180) / angular_speed  # Convertir degrés en radians et calculer la durée
 
@@ -173,7 +173,7 @@ def turn_robot(cmd_vel_pub, right=True):
     end_time = rospy.Time.now() + rospy.Duration(duration)
     while rospy.Time.now() < end_time:
         cmd_vel_pub.publish(rotate_cmd)
-        rate.sleep()
+        #rate.sleep()
 
     # Arrêter le robot après avoir tourné
     stop_cmd = Twist()  # Un message Twist avec toutes les valeurs à zéro
@@ -195,11 +195,16 @@ def record_data(x, y, s1, s2, s3, s4, s5):
 def main():
     rospy.init_node('robot_collector', anonymous=True)
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-
+    print("started")
     create_csv()
     create_db()
-
+    print("created files")
     scanner = WiFiScanner()
+    print("created scanner object")
+    print("lets start collection")
+    #move_straight(pub)
+    #turn_robot(pub)
+    #move_straight(pub)
     collect_space_data(pub, scanner)
 
     rospy.spin()
@@ -207,5 +212,7 @@ def main():
 if __name__ == '__main__':
     try:
         main()
+        #pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        #turn_robot(pub)
     except rospy.ROSInterruptException:
         pass
