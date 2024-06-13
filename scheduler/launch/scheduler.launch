@@ -1,0 +1,20 @@
+<launch>
+<!-- Arguments -->
+<arg name="x" default="0"/>
+<arg name="y" default="0"/>
+<arg name="z" default="0"/>
+<arg name="w" default="0"/>
+
+<!-- Wifi Positioning -->
+
+
+<!-- Camera Node -->
+
+ 
+<!-- SLAM Navigation -->
+<include file="$(find navigation)/launch/navigation.launch"/>
+ 
+<!-- Main Node -->
+<node pkg="scheduler" name="scheduler_node" type="main.py" args="$(arg x) $(arg y) $(arg z) $(arg w)"/>
+
+</launch>
