@@ -14,7 +14,7 @@ from std_msgs.msg import Bool, Float32
 
 class Navigator:
     def __init__(self):
-        self.destination = Point(3.0, 10.0, 0) #Point(2.0, 10.0, 0) #Point(5.0, 5.0, 0)  # Destination prédéterminée
+        self.destination = Point(1.0, 13.0, 0) #Point(3.0, 10.0, 0) #Point(2.0, 10.0, 0) #Point(5.0, 5.0, 0)  # Destination prédéterminée
         self.intermediate_destination = Point(3.0, 4.0, 0)
         self.current_position = Point()
         self.computed_position = Point()
@@ -111,6 +111,7 @@ class Navigator:
             s2_avg = self.scanner.average(s2_values)
             s3_avg = self.scanner.average(s3_values)
             wifi_data = [s1_avg, s2_avg, s3_avg] # self.scanner.scan_and_get_data()
+            print("wifi_data = ", wifi_data)
             predicted_position = self.predictor.predict_position(wifi_data)
             x,y = predicted_position[0]
             return x,y
