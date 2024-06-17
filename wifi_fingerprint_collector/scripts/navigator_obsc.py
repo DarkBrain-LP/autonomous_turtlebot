@@ -10,11 +10,12 @@ from position_predictor import PositionPredictor
 from nav_msgs.msg import Odometry
 import tf
 
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 class Navigator:
     def __init__(self):
-        self.destination = Point(2.0, 10.0, 0) #Point(5.0, 5.0, 0)  # Destination prédéterminée
+        self.destination = Point(3.0, 10.0, 0) #Point(2.0, 10.0, 0) #Point(5.0, 5.0, 0)  # Destination prédéterminée
+        self.intermediate_destination = Point(3.0, 4.0, 0)
         self.current_position = Point()
         self.computed_position = Point()
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -31,12 +32,28 @@ class Navigator:
         self.current_theta = 0.0
 
         self.wifi_position = Point()
-        
+
         self.shoul_start_navigation = False
         self.wifi_publisher = rospy.Publisher('/wifi', Bool, queue_size=10)
         self.wifi_subscriber = rospy.Subscriber('/wifi', Bool, self.wifi_callback)
 
+        # subsribe to /obstacle_angle
+        self.obstacle_angle_subscriber = rospy.Subscriber('/obstacle_angle', Float32, self.obstacle_angle_callback)
+        self.obstacle_angle = None
         rospy.loginfo("Navigator initialized.")
+
+    def obstacle_angle_callback(self, data):
+        self.obstacle_angle = data.data
+        rospy.loginfo("Obstacle detected at angle: %f", self.obstacle_angle)
+        if self.obstacle_angle == 0:
+            applied_angle = math.pi / 2
+        elif self.obstacle_angle == 30.0:
+            applied_angle = -math.pi / 6
+        elif self.obstacle_angle == 330.0:
+            applied_angle = math.pi / 6
+            
+        self.rotate_towards_goal(applied_angle)
+        self.move_towards_goal(0.3)
 
     def wifi_callback(self, data):
         if data.data == True:
@@ -101,12 +118,12 @@ class Navigator:
             return None, None
 
     def navigate_to_destination(self):
-        
+
         rospy.loginfo("Waiting for signal to start navigation.")
 
         while not self.shoul_start_navigation:
             continue
-        
+
         rospy.loginfo("Starting navigation.")
 
         self.computed_position = self.current_position  # Initialize computed position
@@ -136,6 +153,14 @@ class Navigator:
 
                 # log wifi and current position
                 rospy.loginfo("WiFi  (%f, %f), Current (%f, %f)", x, y, self.current_position.x, self.current_position.y)
+                # vérifier si la position wifi est proche de la destination
+                if x == self.destination.x and y == self.destination.y:
+                    self.stop_robot()
+                    rospy.loginfo("Destination atteinte.")
+                    stop_message = Bool()
+                    stop_message.data = False
+                    self.wifi_publisher.publish(stop_message)
+                    return
                 # calculate the mean Point between the wifi and current position
                 mean_point = Point()
                 mean_point.x = (self.wifi_position.x + self.current_position.x) / 2
@@ -220,7 +245,7 @@ class Navigator:
         twist = Twist()
         linear_speed = min(0.2, distance)  # Limite la vitesse linéaire à 0.2 m/s
         const_distance = 0.5
-        end_time = rospy.Time.now() + rospy.Duration(const_distance / linear_speed)
+        end_time = rospy.Time.now() + rospy.Duration(distance / linear_speed)
         rospy.loginfo("Moving forward Distance: %f", const_distance)
         while rospy.Time.now() < end_time and not rospy.is_shutdown():
             twist.linear.x = linear_speed
@@ -232,14 +257,9 @@ class Navigator:
         new_y = distance * math.sin(angle)
         self.computed_position.x += new_x
         self.computed_position.y += new_y
-        # rospy.loginfo("Added to Computed Position: x: %f, y: %f", new_x, new_y)
-        # rospy.loginfo("Updated Computed Position to: x: %f, y: %f", self.computed_position.x, self.computed_position.y)
 
     def log_position_error(self):
         pass
-        # error_x = self.current_position.x - self.computed_position.x
-        # error_y = self.current_position.y - self.computed_position.y
-        # rospy.loginfo("Position Error: x: %f, y: %f", error_x, error_y)
 
     def stop_robot(self):
         twist = Twist()
