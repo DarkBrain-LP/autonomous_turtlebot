@@ -4,6 +4,7 @@ import rospy
 from geometry_msgs.msg import Point
 from wifi_scanner import WiFiScanner
 from position_predictor import PositionPredictor
+import numpy as np
 
 
 class PositionFetcher():
@@ -23,11 +24,21 @@ class PositionFetcher():
             s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
             s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
             #wifi_data = self.scanner.scan_and_get_data()
-            
-            s1_avg = self.scanner.average(s1_values)
-            s2_avg = self.scanner.average(s2_values)
-            s3_avg = self.scanner.average(s3_values)
-            wifi_data = [s1_avg, s2_avg, s3_avg]
+            # Filtrer les valeurs 'N/A'
+            s1_values = sorted([float(value) for value in s1_values if value != 'N/A'])
+            s2_values = sorted([float(value) for value in s2_values if value != 'N/A'])
+            s3_values = sorted([float(value) for value in s3_values if value != 'N/A'])
+            print(s1_values, s2_values, s3_values)
+            # Calculer la médiane
+            median_s1 = s1_values[1] #np.median(s1_values) if s1_values else 'N/A'
+            median_s2 = s2_values[1] #np.median(s2_values) if s2_values else 'N/A'
+            median_s3 = s3_values[1] #np.median(s3_values) if s3_values else 'N/A'
+
+            #s1_avg = self.scanner.average(s1_values)
+            #s2_avg = self.scanner.average(s2_values)
+            #s3_avg = self.scanner.average(s3_values)
+            #wifi_data = [s1_avg, s2_avg, s3_avg]
+            wifi_data = [median_s1, median_s2, median_s3]
             predicted_position = self.predictor.predict_position(wifi_data)
             x,y = predicted_position[0]
             # create a new Point object and publish it

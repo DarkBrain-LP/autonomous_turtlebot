@@ -20,7 +20,7 @@ class PositionPredictor:
         y = data[['x', 'y']]
 
         # Créer le modèle k-NN (k=3, par exemple)
-        knn = KNeighborsClassifier(n_neighbors=5) # n_neighbors = 3
+        knn = KNeighborsClassifier(n_neighbors=6) # n_neighbors = 3
 
         # Entraîner le modèle avec les données
         knn.fit(X, y)

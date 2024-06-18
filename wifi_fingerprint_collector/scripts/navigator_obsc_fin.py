@@ -103,14 +103,15 @@ class Navigator:
 
     def get_current_position(self):
         try:
-            signals_list = [self.scanner.scan_and_get_data() for _ in range(3)]
-            s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
-            s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
-            s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
-            s1_avg = self.scanner.average(s1_values)
-            s2_avg = self.scanner.average(s2_values)
-            s3_avg = self.scanner.average(s3_values)
-            wifi_data = [s1_avg, s2_avg, s3_avg] # self.scanner.scan_and_get_data()
+            #signals_list = [self.scanner.scan_and_get_data() for _ in range(3)]
+            #s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
+            #s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
+            #s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
+            #s1_avg = self.scanner.average(s1_values)
+            #s2_avg = self.scanner.average(s2_values)
+            #s3_avg = self.scanner.average(s3_values)
+            #wifi_data = [s1_avg, s2_avg, s3_avg] # self.scanner.scan_and_get_data()
+            wifi_data = self.scanner.scan_and_get_data()
             print("wifi_data = ", wifi_data)
             predicted_position = self.predictor.predict_position(wifi_data)
             x,y = predicted_position[0]
@@ -178,7 +179,7 @@ class Navigator:
                     stop_message.data = False
                     self.wifi_publisher.publish(stop_message)
                     return
-                self.apply_navigation(1, angle_to_goal) # distance, angle_to_goal
+                self.apply_navigation(2.5, angle_to_goal) # distance, angle_to_goal
 
 
 
@@ -206,7 +207,7 @@ class Navigator:
 
     def apply_navigation(self, distance, angle):
         # duration of 10 seconds
-        time_duration = 5
+        time_duration = 10 # 5
         # calculate the linear and angular speed
         linear_speed = distance / time_duration
 
