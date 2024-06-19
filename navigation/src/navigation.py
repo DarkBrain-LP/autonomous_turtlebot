@@ -4,25 +4,48 @@ import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, Twist, Pose
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib import SimpleActionClient
-from scheduler.msg import active
+from actionlib_msgs.msg import GoalStatus
+from std_msgs.msg import Bool
+from visualization_msgs.msg import Marker
+
+import math
  
-navigation_node = active()
+navigation_node = Bool()
 goal = Pose()
-goal_is_ready = False
+goal_is_ready = Bool()
+goal_is_ready.data = False
+start_is_ready = Bool()
+start_is_ready.data = False
 starting_position = Pose()
+position = PoseWithCovarianceStamped()
+position.pose.pose.position.x = -50
+position.pose.pose.position.y = -50
+cnt = 0
+qr_code_on_screen = False
 
 def get_navigation_node(data):
-    global navigation_node, goal_is_ready
+    global navigation_node
     navigation_node = data
-    goal_is_ready = True
+    rospy.loginfo("Start navigation %s", navigation_node.data)
 
 def get_goal(data):
-    global goal
+    global goal, goal_is_ready
     goal = data
+    goal_is_ready.data = True
+    rospy.loginfo("Goal is ready : %s", goal)
 
 def get_starting_position(data):
     global starting_position
     starting_position = data
+    start_is_ready.data = True
+
+def get_position(data):
+    global position
+    position = data
+
+def qr_code_found(data):
+    global qr_code_on_screen
+    qr_code_on_screen = True
 
 def init_pose(initialpose, cmd_vel, start_position):
     pose = PoseWithCovarianceStamped()
@@ -44,13 +67,13 @@ def init_pose(initialpose, cmd_vel, start_position):
 
  
 def init_goal(waypoints):
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = "map"
-    goal.target_pose.pose.position.x = waypoints[0]
-    goal.target_pose.pose.position.y = waypoints[1]
-    goal.target_pose.pose.orientation.z = waypoints[2]
-    goal.target_pose.pose.orientation.w = waypoints[3]
-    return goal
+    goal_s = MoveBaseGoal()
+    goal_s.target_pose.header.frame_id = "map"
+    goal_s.target_pose.pose.position.x = waypoints[0]
+    goal_s.target_pose.pose.position.y = waypoints[1]
+    goal_s.target_pose.pose.orientation.z = waypoints[2]
+    goal_s.target_pose.pose.orientation.w = waypoints[3]
+    return goal_s
  
 if __name__ == '__main__':
     try:
@@ -60,32 +83,59 @@ if __name__ == '__main__':
         initialpose = rospy.Publisher ('/initialpose', PoseWithCovarianceStamped, queue_size = 10)
         cmd_vel = rospy.Publisher ('/cmd_vel', Twist, queue_size=10)
 
-        navigation_node_sub = rospy.Subsciber('/navigation', active, get_navigation_node)
-        goal_sub = rospy.Subsciber('/goal', Pose, get_goal)
-        starting_position_sub = rospy.Subsciber('/starting_position', Pose, get_starting_position)
-        rospy.sleep(1)
+        navigation_node_sub = rospy.Subscriber('/navigation', Bool, get_navigation_node)
+        goal_reached_pub = rospy.Publisher ('/goal_reached', Bool, queue_size=10)
+
+
+        goal_sub = rospy.Subscriber('/destination', Pose, get_goal)
+        starting_position_sub = rospy.Subscriber('/starting_position', Pose, get_starting_position)
+        amcl_sub = rospy.Subscriber('amcl_pose', PoseWithCovarianceStamped, get_position)
+        marker_sub = rospy.Subscriber('/qr_code_marker', Marker, qr_code_found)
 
         client = SimpleActionClient('move_base', MoveBaseAction)
         client.wait_for_server()
+        rospy.loginfo("Ready !")
 
-        # Getting the goal from the scheduler
-        while not goal_is_ready:
-            pass
+        while True:
 
-        waypoint = [goal.position.x, goal.position.y, goal.orientation.z, goal.orientation.w]
+            # Getting the goal from the scheduler
+            while not goal_is_ready.data:
+                continue
 
-        while not navigation_node.active:
-            pass
+            waypoint = [goal.position.x, goal.position.y, goal.orientation.z, goal.orientation.w]
 
-        # Initialize the starting position
-        startpoint = [starting_position.position.x, starting_position.position.y, starting_position.orientation.z, starting_position.orientation.w]
-        init_pose(initialpose, cmd_vel, startpoint)
+            while not navigation_node.data or not start_is_ready.data:
+                continue
+            
+            
+            # Initialize the starting position
+            startpoint = [starting_position.position.x, starting_position.position.y, starting_position.orientation.z, starting_position.orientation.w]
+            if cnt == 0:
+                init_pose(initialpose, cmd_vel, startpoint)
 
-        goal = init_goal(waypoint)
-        rospy.loginfo("Sending goal: %s", goal)
-        client.send_goal(goal)
-        while navigation_node.active:
-            pass
+            goal_p = init_goal(waypoint)
+            rospy.loginfo("Sending goal: %s", goal_p)
+            client.send_goal(goal_p)
+
+            # Check distance
+            while True:
+                pose = [position.pose.pose.position.x, position.pose.pose.position.y]
+                dest = [goal_p.target_pose.pose.position.x, goal_p.target_pose.pose.position.y]
+                if qr_code_on_screen:
+                    break
+                if math.dist(pose, dest) < 0.1 and cnt == 0:
+                    client.cancel_all_goals()
+                    true = Bool()
+                    true.data = True
+                    goal_reached_pub.publish(true)
+                    goal_is_ready.data = False
+                    break
+            if qr_code_on_screen:
+                client.cancel_all_goals()
+                break
+            cnt += 1
+
+            
         
     except rospy.ROSInterruptException:
         pass
