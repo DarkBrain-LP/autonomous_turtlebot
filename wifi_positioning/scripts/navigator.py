@@ -24,6 +24,7 @@ class Navigator:
         self.rate = rospy.Rate(10)  # 10 Hz
         self.position_updated = False
         self.destination_reached = False
+        self.distance = 1.0 # Distance to move in meters
 
         self.scanner = WiFiScanner()
         self.predictor = PositionPredictor()
@@ -45,6 +46,7 @@ class Navigator:
     def obstacle_angle_callback(self, data):
         self.obstacle_angle = data.data
         rospy.loginfo("Obstacle detected at angle: %f", self.obstacle_angle)
+        
         if self.obstacle_angle == 0:
             applied_angle = math.pi / 2
         elif self.obstacle_angle == 30.0:
@@ -92,6 +94,8 @@ class Navigator:
 
     def get_current_theta(self):
         return self.current_theta
+    
+        # initial implementation: ignore
         try:
             (trans, rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
             euler_angles = tf.transformations.euler_from_quaternion(rot)
@@ -103,17 +107,21 @@ class Navigator:
 
     def get_current_position(self):
         try:
+            # Get the wifi signals 3 time for each access point and average them
             signals_list = [self.scanner.scan_and_get_data() for _ in range(3)]
             s1_values = [signals[0] if len(signals) > 0 else 'N/A' for signals in signals_list]
             s2_values = [signals[1] if len(signals) > 1 else 'N/A' for signals in signals_list]
             s3_values = [signals[2] if len(signals) > 2 else 'N/A' for signals in signals_list]
+            
             s1_avg = self.scanner.average(s1_values)
             s2_avg = self.scanner.average(s2_values)
             s3_avg = self.scanner.average(s3_values)
+            
             wifi_data = [s1_avg, s2_avg, s3_avg] # self.scanner.scan_and_get_data()
-            print("wifi_data = ", wifi_data)
+            # print("wifi_data = ", wifi_data)
             predicted_position = self.predictor.predict_position(wifi_data)
             x,y = predicted_position[0]
+
             return x,y
         except:
             return None, None
@@ -133,6 +141,7 @@ class Navigator:
 
         self.current_position.x = x
         self.current_position.y = y
+
         # calculate the current time
         last_time = rospy.Time.now()
         # calculate the angle and distance to the goal
@@ -141,7 +150,7 @@ class Navigator:
         distance = self.calculate_distance(self.current_position, self.destination)
         angle_to_goal = self.calculate_angle(self.current_position, self.destination)
 
-        self.apply_navigation(1, angle_to_goal) # distance, angle_to_goal
+        self.apply_navigation(self.distance, angle_to_goal) # distance, angle_to_goal
 
         while not rospy.is_shutdown():
             now = rospy.Time.now()
@@ -162,6 +171,7 @@ class Navigator:
                     stop_message.data = False
                     self.wifi_publisher.publish(stop_message)
                     return
+                
                 # calculate the mean Point between the wifi and current position
                 mean_point = Point()
                 mean_point.x = (self.wifi_position.x + self.current_position.x) / 2
@@ -178,7 +188,8 @@ class Navigator:
                     stop_message.data = False
                     self.wifi_publisher.publish(stop_message)
                     return
-                self.apply_navigation(1, angle_to_goal) # distance, angle_to_goal
+                
+                self.apply_navigation(self.distance, angle_to_goal) # distance, angle_to_goal
 
 
 
@@ -248,6 +259,7 @@ class Navigator:
         const_distance = 0.5
         end_time = rospy.Time.now() + rospy.Duration(distance / linear_speed)
         rospy.loginfo("Moving forward Distance: %f", const_distance)
+
         while rospy.Time.now() < end_time and not rospy.is_shutdown():
             twist.linear.x = linear_speed
             self.velocity_publisher.publish(twist)
@@ -267,6 +279,7 @@ class Navigator:
         twist.linear.x = 0.0
         twist.angular.z = 0.0
         self.velocity_publisher.publish(twist)
+
 
 if __name__ == '__main__':
     rospy.init_node('navigator', anonymous=True)
